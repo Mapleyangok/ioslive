@@ -6,6 +6,7 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.ViewGroup;
 
 import com.alibaba.fastjson.JSONObject;
 import com.elive.pusher.core.ICorePusher;
