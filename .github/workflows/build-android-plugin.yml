@@ -25,6 +25,13 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      # runner 预装的 Gradle 9 与 AGP 7.4.2 不兼容（DependencyHandler.module 已移除），
+      # 显式指定与 AGP 7.4.2 配套的 Gradle 7.6.4
+      - name: Setup Gradle 7.6.4
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '7.6.4'
+
       - name: 校验依赖 aar
         run: |
           AAR=nativeplugins/ELivePusher/android/libs/uniapp-v8-release.aar
@@ -37,8 +44,7 @@ jobs:
       - name: 构建 ELivePusher-release.aar
         run: |
           cd nativeplugins/ELivePusher/android
-          gradle wrapper --gradle-version 7.6
-          ./gradlew assembleRelease --no-daemon
+          gradle assembleRelease --no-daemon
 
       - name: 部署产物到插件目录
         run: |
