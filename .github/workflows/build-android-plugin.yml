@@ -1,0 +1,60 @@
+# ELivePusher Android 插件 aar 云端构建
+#
+# 前置条件（仓库中必须存在）：
+#   nativeplugins/ELivePusher/android/libs/uniapp-v8-release.aar
+#   （从 DCloud HBuilderX App 离线 SDK（Android）zip 中提取，路径通常为
+#     SDK/libs/uniapp-v8-release.aar）
+#
+# 触发方式：仓库 Actions 页手动 Run workflow
+# 产物：ELivePusher-android-aar（放入项目 nativeplugins/ELivePusher/android/ 下即可云打包）
+name: build-android-plugin
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: 校验依赖 aar
+        run: |
+          AAR=nativeplugins/ELivePusher/android/libs/uniapp-v8-release.aar
+          if [ ! -f "${AAR}" ]; then
+            echo "::error::缺少 ${AAR}（请从 DCloud Android 离线 SDK 提取并上传到该路径后重跑）"
+            exit 1
+          fi
+          echo "依赖 aar 存在: $(du -h ${AAR} | cut -f1)"
+
+      - name: 构建 ELivePusher-release.aar
+        run: |
+          cd nativeplugins/ELivePusher/android
+          gradle wrapper --gradle-version 7.6
+          ./gradlew assembleRelease --no-daemon
+
+      - name: 部署产物到插件目录
+        run: |
+          SRC=nativeplugins/ELivePusher/android/build/outputs/aar/ELivePusher-release.aar
+          DST=nativeplugins/ELivePusher/android/ELivePusher-release.aar
+          if [ ! -f "${SRC}" ]; then
+            echo "::error::未找到编译产物 ${SRC}"
+            ls -R nativeplugins/ELivePusher/android/build/outputs || true
+            exit 1
+          fi
+          cp "${SRC}" "${DST}"
+          echo "产物: ${DST} ($(du -h ${DST} | cut -f1))"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ELivePusher-android-aar
+          path: nativeplugins/ELivePusher/android/ELivePusher-release.aar
+          if-no-files-found: error
