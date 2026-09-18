@@ -1,0 +1,77 @@
+# =====================================================================
+# ELivePusher iOS 插件云端编译（GitHub Actions macOS runner）
+#
+# 作用：没有 Mac 时，用 GitHub 提供的 macOS 云服务器执行 ios-plugin-src/build_ios_framework.sh，
+#       产出三个 framework 并打包为可下载的 artifact。
+#
+# 说明：编译插件静态库只需 DCloud iOS SDK 的 inc/ 头文件目录（无需整个 SDK 包，
+#       链接发生在 HBuilderX 云打包阶段）。
+#
+# 使用步骤：
+#   1. 从 DCloud 官方下载页 https://nativesupport.dcloud.net.cn/AppDocs/download/ios
+#      提供的网盘链接（当前正式版为百度网盘，提取码 a6sb）下载 iOS 离线SDK zip，
+#      解压后找到 inc 目录（内有 DCUniModule.h 等），把 inc 目录内全部文件
+#      上传到本仓库的 dcloud-ios-sdk/ 目录；
+#   2. 将本项目推送到 GitHub（建议 Private 仓库，macOS runner 免费额度内够用）：
+#      需上传 .github/workflows/、ios-plugin-src/、scripts/、
+#      nativeplugins/ELivePusher/package.json、dcloud-ios-sdk/；
+#   3. GitHub 仓库页 -> Actions -> build-ios-plugin -> Run workflow -> 运行；
+#   4. 运行完成后在该次运行页面底部 Artifacts 下载 ELivePusher-ios-frameworks.zip，
+#      解压后把三个 framework 覆盖到本项目的 nativeplugins/ELivePusher/ios/；
+#   5. 回 Windows 运行 scripts\verify-ios.ps1 确认全绿，即可 HBuilderX 云打包。
+# =====================================================================
+name: build-ios-plugin
+
+on:
+  workflow_dispatch:
+    inputs:
+      sdk_inc_dir:
+        description: '仓库内 DCloud SDK 头文件目录（需含 DCUniModule.h）'
+        required: false
+        default: 'dcloud-ios-sdk'
+        type: string
+
+jobs:
+  build:
+    runs-on: macos-14
+    timeout-minutes: 60
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 确保 xcodeproj gem 可用
+        run: |
+          gem list xcodeproj -i || sudo gem install xcodeproj --no-document
+
+      - name: 解压并校验 DCloud SDK 头文件
+        run: |
+          # 编译静态库仅需头文件（DCUniModule.h 等）；链接发生在 HBuilderX 云打包阶段
+          cd "${{ inputs.sdk_inc_dir }}"
+          unzip -q inc.zip
+          cd ..
+          INC="${{ inputs.sdk_inc_dir }}/inc"
+          if [ ! -f "${INC}/DCUni/DCUniModule.h" ] || [ ! -f "${INC}/DCUni/DCUniComponent.h" ]; then
+            echo "::error::解压后未找到 inc/DCUni/DCUniModule.h 或 DCUniComponent.h"
+            exit 1
+          fi
+          SDK_ROOT="$(cd "${{ inputs.sdk_inc_dir }}" && pwd)"
+          echo "SDK 头文件目录: ${SDK_ROOT}/inc"
+          echo "UNI_IOS_SDK_DIR=${SDK_ROOT}" >> "$GITHUB_ENV"
+
+      - name: 编译 iOS framework 产物
+        run: |
+          cd ios-plugin-src
+          chmod +x build_ios_framework.sh
+          ./build_ios_framework.sh
+
+      - name: 产物深度校验（verify-ios.sh）
+        run: |
+          chmod +x scripts/verify-ios.sh
+          ./scripts/verify-ios.sh
+
+      - name: 上传产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: ELivePusher-ios-frameworks
+          path: nativeplugins/ELivePusher/ios/
+          if-no-files-found: error
