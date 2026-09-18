@@ -1,0 +1,90 @@
+{
+  "name": "ELivePusher",
+  "id": "ELivePusher",
+  "version": "1.0.0",
+  "description": "eLiveApp 原生推流插件：支持 SRS WebRTC(webrtc://) 与 RTMP(rtmp://) 双协议推流，Android 基于 libwebrtc/RootEncoder，iOS 基于 GoogleWebRTC/LFLiveKit。API 与内置 live-pusher 对齐。",
+  "_dp_type": "nativeplugin",
+  "_dp_nativeplugin": {
+    "android": {
+      "plugins": [
+        {
+          "type": "module",
+          "name": "ELivePusher-Module",
+          "class": "com.elive.pusher.ELivePusherModule"
+        },
+        {
+          "type": "component",
+          "name": "elive-pusher-view",
+          "class": "com.elive.pusher.ELivePusherComponent"
+        }
+      ],
+      "hooksClass": "",
+      "integrateType": "aar",
+      "dependencies": [
+        "io.getstream:stream-webrtc-android:1.3.10",
+        "com.github.pedroSG94.RootEncoder:library:2.8.1"
+      ],
+      "excludeDependencies": [],
+      "compileOptions": {
+        "sourceCompatibility": "1.8",
+        "targetCompatibility": "1.8"
+      },
+      "abis": ["armeabi-v7a", "arm64-v8a"],
+      "minSdkVersion": "21",
+      "useAndroidX": true,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FLASHLIGHT",
+        "android.permission.WAKE_LOCK"
+      ],
+      "parameters": {}
+    },
+    "ios": {
+      "plugins": [
+        {
+          "type": "module",
+          "name": "ELivePusher-Module",
+          "class": "ELivePusherModule"
+        },
+        {
+          "type": "component",
+          "name": "elive-pusher-view",
+          "class": "ELivePusherComponent"
+        }
+      ],
+      "hooksClass": "",
+      "integrateType": "framework",
+      "frameworks": [
+        "AVFoundation.framework",
+        "CoreMedia.framework",
+        "CoreVideo.framework",
+        "VideoToolbox.framework",
+        "AudioToolbox.framework",
+        "AudioUnit.framework",
+        "Metal.framework",
+        "MetalKit.framework",
+        "libc++.tbd",
+        "libz.tbd",
+        "WebRTC.framework",
+        "LFLiveKit.framework"
+      ],
+      "embedFrameworks": ["WebRTC.framework"],
+      "capabilities": {},
+      "plists": {},
+      "assets": [],
+      "privacies": [
+        "NSCameraUsageDescription",
+        "NSMicrophoneUsageDescription"
+      ],
+      "embedSwift": false,
+      "deploymentTarget": "12.0",
+      "validArchitectures": ["arm64"],
+      "resources": [],
+      "parameters": {}
+    }
+  }
+}
