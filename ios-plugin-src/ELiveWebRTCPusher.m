@@ -477,7 +477,8 @@ static RTC_OBJC_TYPE(RTCPeerConnectionFactory) *ELiveEnsureFactory(void) {
     long bestDiff = LONG_MAX;
     long target = (long)self.width * (long)self.height;
     for (AVCaptureDeviceFormat *f in formats) {
-        CMVideoDimensions d = f.dimensions;
+        // 经 CMVideoFormatDescriptionGetDimensions 读取（不依赖 AVCaptureDeviceFormat.dimensions 属性声明）
+        CMVideoDimensions d = CMVideoFormatDescriptionGetDimensions(f.formatDescription);
         long area = (long)d.width * (long)d.height;
         long diff = labs(area - target);
         if (diff < bestDiff) {
