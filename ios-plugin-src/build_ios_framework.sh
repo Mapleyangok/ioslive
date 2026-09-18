@@ -165,10 +165,10 @@ else
 fi
 
 # ---------------------------------------------------- 8. 依赖：LFLiveKit.framework
-# 注意：LFLiveKit 2.6 的 podspec 依赖 GPUImage（独立 pod），libLFLiveKit.a 不含 GPUImage 符号；
-# 云打包只会链接 frameworks 列表中的库，因此需将 libGPUImage.a 一并合并进 LFLiveKit.framework，
-# 否则链接 ELiveRTMPPusher 时会报 undefined symbols（OBJC_CLASS_$_GPUImageVideoCamera 等）。
-echo "==> 编译并组装 LFLiveKit.framework（含 GPUImage 合并）..."
+# LFLiveKit 2.6 的 podspec 无外部依赖（GPUImage 源码已内嵌于 LFLiveKit 源码树），
+# 直接编译 LFLiveKit scheme 即可；use_frameworks! :linkage => :static 下产物为
+# products-lf/LFLiveKit.framework（静态 framework，二进制 / Headers / Modules 齐全）。
+echo "==> 编译并组装 LFLiveKit.framework..."
 (cd "${BUILD_DIR}" && xcodebuild \
   -workspace ELivePusher.xcworkspace \
   -scheme LFLiveKit \
@@ -177,45 +177,33 @@ echo "==> 编译并组装 LFLiveKit.framework（含 GPUImage 合并）..."
   CONFIGURATION_BUILD_DIR="${BUILD_DIR}/products-lf" \
   build) || echo "[警告] LFLiveKit scheme 编译失败，可改为在 Xcode 中手动编译 Pods-LFLiveKit 后重跑本脚本"
 
-echo "==> 编译 GPUImage 依赖..."
-(cd "${BUILD_DIR}" && xcodebuild \
-  -workspace ELivePusher.xcworkspace \
-  -scheme GPUImage \
-  -configuration Release \
-  -sdk iphoneos -arch arm64 \
-  CONFIGURATION_BUILD_DIR="${BUILD_DIR}/products-gpu" \
-  build) || echo "[警告] GPUImage scheme 编译失败，可改为在 Xcode 中手动编译 Pods-GPUImage 后重跑本脚本"
-
+LF_FW="${BUILD_DIR}/products-lf/LFLiveKit.framework"
 LF_A=$(find "${BUILD_DIR}/products-lf" -name "libLFLiveKit.a" 2>/dev/null | head -1)
-GP_A=$(find "${BUILD_DIR}/products-gpu" -name "libGPUImage.a" 2>/dev/null | head -1)
-if [ -n "${LF_A}" ]; then
+if [ -d "${LF_FW}" ]; then
+  # 静态 framework 产物：整体复制（含二进制 / Headers / Modules）
+  rm -rf "${OUT_DIR}/LFLiveKit.framework"
+  cp -R "${LF_FW}" "${OUT_DIR}/LFLiveKit.framework"
+  echo "    已输出: ${OUT_DIR}/LFLiveKit.framework"
+elif [ -n "${LF_A}" ]; then
+  # 兜底：无 use_frameworks 模式下产物为 libLFLiveKit.a，自行组装 framework
   LFFW="${OUT_DIR}/LFLiveKit.framework"
   rm -rf "${LFFW}"
   mkdir -p "${LFFW}/Headers"
-  if [ -n "${GP_A}" ]; then
-    # libtool 静态合并：LFLiveKit + GPUImage（保持 arm64 真机架构）
-    xcrun libtool -static -o "${LFFW}/LFLiveKit" "${LF_A}" "${GP_A}"
-    echo "    已合并 libGPUImage.a -> LFLiveKit.framework/LFLiveKit"
-  else
-    cp "${LF_A}" "${LFFW}/LFLiveKit"
-    echo "[警告] 未找到 libGPUImage.a，LFLiveKit.framework 缺少 GPUImage 符号（云打包会链接失败）"
-  fi
-  # 保留 Pod 源码头文件的相对目录结构（LFLiveKit/GPUImage 内存在同名头文件，不可平铺），
-  # Pod 伞头 LFLiveKit.h 也在该树内（相对 import 均有效）
+  cp "${LF_A}" "${LFFW}/LFLiveKit"
+  # 保留 Pod 源码头文件的相对目录结构（LFLiveKit/GPUImage 内存在同名头文件，不可平铺）
   HDR_SRC="${BUILD_DIR}/Pods/LFLiveKit/LFLiveKit"
   (cd "${HDR_SRC}" && find . -name '*.h' -print0) | while IFS= read -r -d '' h; do
     rel="${h#./}"
     mkdir -p "${LFFW}/Headers/$(dirname "${rel}")"
     cp "${HDR_SRC}/${rel}" "${LFFW}/Headers/${rel}"
   done
-  # 生成顶层转发伞头（下游 #import <LFLiveKit/LFLiveKit.h> 时转发到树内 Pod 伞头，
-  # 避免 Pod 伞头的相对 import 在 framework Headers 根目录下失效）
+  # 生成顶层转发伞头（下游 #import <LFLiveKit/LFLiveKit.h> 时转发到树内 Pod 伞头）
   cat > "${LFFW}/Headers/LFLiveKit.h" <<'UMBRELLA'
 #import "LFLiveKit/LFLiveKit.h"
 UMBRELLA
   echo "    已输出: ${LFFW}"
 else
-  echo "[警告] 未找到 libLFLiveKit.a，LFLiveKit.framework 未生成"
+  echo "[警告] 未找到 LFLiveKit 编译产物，LFLiveKit.framework 未生成"
 fi
 
 # ----------------------------------------------------------------------- 9. 完成
