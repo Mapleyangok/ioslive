@@ -25,13 +25,15 @@ import org.webrtc.PeerConnection;
 import org.webrtc.PeerConnectionFactory;
 import org.webrtc.RTCStats;
 import org.webrtc.RTCStatsReport;
+import org.webrtc.RtpSender;
 import org.webrtc.RtpParameters;
 import org.webrtc.RtpReceiver;
 import org.webrtc.RtpTransceiver;
 import org.webrtc.SdpObserver;
 import org.webrtc.SessionDescription;
 import org.webrtc.SurfaceTextureHelper;
-import org.webrtc.TextureViewRenderer;
+// stream-webrtc-android（getstream 重打包）不提供 TextureViewRenderer，使用 SurfaceViewRenderer
+import org.webrtc.SurfaceViewRenderer;
 import org.webrtc.VideoSource;
 import org.webrtc.VideoTrack;
 
@@ -71,7 +73,7 @@ public class SrsWebRtcPusher implements ICorePusher {
     private CameraVideoCapturer capturer;
     private VideoTrack videoTrack;
     private AudioTrack audioTrack;
-    private TextureViewRenderer renderer;
+    private SurfaceViewRenderer renderer;
     private ViewGroup container;
 
     private String url;
@@ -499,7 +501,7 @@ public class SrsWebRtcPusher implements ICorePusher {
             ((ViewGroup) renderer.getParent()).removeView(renderer);
         }
         if (renderer == null) {
-            renderer = new TextureViewRenderer(appContext);
+            renderer = new SurfaceViewRenderer(appContext);
             renderer.init(eglBase.getEglBaseContext(), null);
             renderer.setMirror(mirror);
         }
