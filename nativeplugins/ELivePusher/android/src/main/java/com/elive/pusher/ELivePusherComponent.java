@@ -11,8 +11,11 @@ import androidx.annotation.NonNull;
 import com.alibaba.fastjson.JSONObject;
 import com.elive.pusher.core.ICorePusher;
 
-import io.dcloud.feature.uniapp.annotation.UniComponentProp;
+import io.dcloud.feature.uniapp.UniSDKInstance;
+import io.dcloud.feature.uniapp.ui.action.AbsComponentData;
+import io.dcloud.feature.uniapp.ui.component.AbsVContainer;
 import io.dcloud.feature.uniapp.ui.component.UniComponent;
+import io.dcloud.feature.uniapp.ui.component.UniComponentProp;
 
 /**
  * 原生推流预览组件（对应 nvue 标签 <elive-pusher-view>）。
@@ -29,8 +32,14 @@ public class ELivePusherComponent extends UniComponent<FrameLayout> {
     }
 
     private String pusherId;
+    private final UniSDKInstance instance;
     private PermissionResultCallback permissionCallback;
     private static final int PERMISSION_REQUEST_CODE = 0x4501;
+
+    public ELivePusherComponent(UniSDKInstance instance, AbsVContainer parent, AbsComponentData absComponentData) {
+        super(instance, parent, absComponentData);
+        this.instance = instance;
+    }
 
     @Override
     protected FrameLayout initComponentHostView(@NonNull Context context) {
@@ -39,11 +48,11 @@ public class ELivePusherComponent extends UniComponent<FrameLayout> {
     }
 
     @Override
-    protected void onHostDestroy() {
+    public void destroy() {
         if (pusherId != null) {
             PusherManager.getInstance().detachView(pusherId, this);
         }
-        super.onHostDestroy();
+        super.destroy();
     }
 
     @UniComponentProp(name = "pusherId")
@@ -65,12 +74,12 @@ public class ELivePusherComponent extends UniComponent<FrameLayout> {
     }
 
     public Context getApplicationContext() {
-        Context c = mUniSDKInstance.getContext();
+        Context c = instance.getContext();
         return c != null ? c.getApplicationContext() : null;
     }
 
     public Activity getActivity() {
-        Context c = mUniSDKInstance.getContext();
+        Context c = instance.getContext();
         while (c instanceof ContextWrapper) {
             if (c instanceof Activity) {
                 return (Activity) c;
