@@ -19,6 +19,7 @@ buildscript {
 apply plugin: 'com.android.library'
 
 android {
+    namespace 'com.elive.pusher'
     compileSdkVersion 30
     defaultConfig {
         minSdkVersion 21
