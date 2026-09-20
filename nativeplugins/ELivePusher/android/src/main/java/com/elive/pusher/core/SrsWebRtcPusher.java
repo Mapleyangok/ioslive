@@ -264,8 +264,9 @@ public class SrsWebRtcPusher implements ICorePusher {
             applyBitrate();
 
             MediaConstraints constraints = new MediaConstraints();
-            constraints.addMandatory(new MediaConstraints.KeyValuePair("OfferToReceiveAudio", "false"));
-            constraints.addMandatory(new MediaConstraints.KeyValuePair("OfferToReceiveVideo", "false"));
+            // getstream 版 webrtc：addMandatory 改为可变列表 mandatory/optional
+            constraints.mandatory.add(new MediaConstraints.KeyValuePair("OfferToReceiveAudio", "false"));
+            constraints.mandatory.add(new MediaConstraints.KeyValuePair("OfferToReceiveVideo", "false"));
 
             emitState(StateCodes.CONNECT_SERVER, "开始连接推流服务器");
             pc.createOffer(new SdpAdapter() {
@@ -388,21 +389,25 @@ public class SrsWebRtcPusher implements ICorePusher {
                 return;
             }
             try {
-                Bitmap bmp = renderer.getBitmap();
-                if (bmp == null) {
-                    callback.onResult(null, "截图失败：无画面");
-                    return;
-                }
-                File dir = appContext.getCacheDir();
-                File out = new File(dir, "elive_snapshot_" + System.currentTimeMillis() + ".jpg");
-                FileOutputStream fos = new FileOutputStream(out);
-                bmp.compress(Bitmap.CompressFormat.JPEG, 90, fos);
-                fos.flush();
-                fos.close();
-                bmp.recycle();
-                callback.onResult(out.getAbsolutePath(), null);
-            } catch (Exception e) {
-                callback.onResult(null, "截图失败: " + e.getMessage());
+                // getstream 版 webrtc 无 getBitmap()，改走 EglRenderer.FrameListener 回调帧
+                renderer.addFrameListener(bmp -> {
+                    try {
+                        if (bmp == null) {
+                            callback.onResult(null, "截图失败：无画面");
+                            return;
+                        }
+                        File dir = appContext.getCacheDir();
+                        File out = new File(dir, "elive_snapshot_" + System.currentTimeMillis() + ".jpg");
+                        FileOutputStream fos = new FileOutputStream(out);
+                        bmp.compress(Bitmap.CompressFormat.JPEG, 90, fos);
+                        fos.flush();
+                        fos.close();
+                        bmp.recycle();
+                        callback.onResult(out.getAbsolutePath(), null);
+                    } catch (Exception e) {
+                        callback.onResult(null, "截图失败: " + e.getMessage());
+                    }
+                }, 1.0f, null, false);
             }
         });
     }
@@ -546,7 +551,7 @@ public class SrsWebRtcPusher implements ICorePusher {
 
     private CameraVideoCapturer createCapturer(String deviceName) {
         Camera2Enumerator e2 = new Camera2Enumerator(appContext);
-        if (e2.deviceNames().length > 0) {
+        if (e2.getDeviceNames().length > 0) {
             try {
                 CameraVideoCapturer c = e2.createCapturer(deviceName, null);
                 if (c != null) {
@@ -556,7 +561,7 @@ public class SrsWebRtcPusher implements ICorePusher {
             }
         }
         Camera1Enumerator e1 = new Camera1Enumerator(false);
-        for (String name : e1.deviceNames()) {
+        for (String name : e1.getDeviceNames()) {
             if (name.equals(deviceName)) {
                 return e1.createCapturer(name, null);
             }
@@ -566,13 +571,13 @@ public class SrsWebRtcPusher implements ICorePusher {
 
     private String findDeviceName(boolean front) {
         Camera2Enumerator e2 = new Camera2Enumerator(appContext);
-        for (String name : e2.deviceNames()) {
+        for (String name : e2.getDeviceNames()) {
             if (front ? e2.isFrontFacing(name) : e2.isBackFacing(name)) {
                 return name;
             }
         }
         Camera1Enumerator e1 = new Camera1Enumerator(false);
-        for (String name : e1.deviceNames()) {
+        for (String name : e1.getDeviceNames()) {
             if (front ? e1.isFrontFacing(name) : e1.isBackFacing(name)) {
                 return name;
             }
