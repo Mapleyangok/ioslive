@@ -406,7 +406,7 @@ public class SrsWebRtcPusher implements ICorePusher {
                 } catch (Exception e) {
                     callback.onResult(null, "截图失败: " + e.getMessage());
                 }
-            }, 1.0f, null, false);
+            }, 1.0f);
         });
     }
 
