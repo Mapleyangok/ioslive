@@ -388,27 +388,25 @@ public class SrsWebRtcPusher implements ICorePusher {
                 callback.onResult(null, "预览未开启");
                 return;
             }
-            try {
-                // getstream 版 webrtc 无 getBitmap()，改走 EglRenderer.FrameListener 回调帧
-                renderer.addFrameListener(bmp -> {
-                    try {
-                        if (bmp == null) {
-                            callback.onResult(null, "截图失败：无画面");
-                            return;
-                        }
-                        File dir = appContext.getCacheDir();
-                        File out = new File(dir, "elive_snapshot_" + System.currentTimeMillis() + ".jpg");
-                        FileOutputStream fos = new FileOutputStream(out);
-                        bmp.compress(Bitmap.CompressFormat.JPEG, 90, fos);
-                        fos.flush();
-                        fos.close();
-                        bmp.recycle();
-                        callback.onResult(out.getAbsolutePath(), null);
-                    } catch (Exception e) {
-                        callback.onResult(null, "截图失败: " + e.getMessage());
+            // getstream 版 webrtc 无 getBitmap()，改走 EglRenderer.FrameListener 回调帧
+            renderer.addFrameListener(bmp -> {
+                try {
+                    if (bmp == null) {
+                        callback.onResult(null, "截图失败：无画面");
+                        return;
                     }
-                }, 1.0f, null, false);
-            }
+                    File dir = appContext.getCacheDir();
+                    File out = new File(dir, "elive_snapshot_" + System.currentTimeMillis() + ".jpg");
+                    FileOutputStream fos = new FileOutputStream(out);
+                    bmp.compress(Bitmap.CompressFormat.JPEG, 90, fos);
+                    fos.flush();
+                    fos.close();
+                    bmp.recycle();
+                    callback.onResult(out.getAbsolutePath(), null);
+                } catch (Exception e) {
+                    callback.onResult(null, "截图失败: " + e.getMessage());
+                }
+            }, 1.0f, null, false);
         });
     }
 
